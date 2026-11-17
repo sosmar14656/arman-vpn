@@ -1,12 +1,8 @@
-# Headless Arman VPN: the Linux core (SOCKS5 and HTTP proxy, and the web
-# panel). The version baked into the binary is app/pubspec.yaml, the same
-# "major.minor.patch" a release tag vX.Y.Z must name.
+
+# Headless Arman VPN
+# SOCKS5, HTTP Proxy and Web Panel
 
 ARG GO_VERSION=1.27.2
-# build compiles the core from these sources. prebuilt takes a core built
-# outside, from docker-prebuilt/linux-<arch>/arman-vpn-core: the release
-# workflow does that when it builds with its optional build profile, the
-# same core the Linux release packages carry.
 ARG CORE=build
 
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-bookworm AS build
@@ -20,6 +16,7 @@ ARG VERSION=
 WORKDIR /src
 COPY core/go.mod core/go.sum core/
 WORKDIR /src/core
+
 RUN set -eu \
     && goversion="$(awk '/^go / { print $2; exit }' go.mod)" \
     && if [ "$goversion" != "$GO_VERSION" ]; then \
@@ -69,9 +66,10 @@ RUN apt-get update \
 COPY --from=core /out/arman-vpn-core /usr/local/bin/arman-vpn-core
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint
 COPY LICENSE /usr/local/share/arman-vpn/LICENSE
+
 RUN chmod 755 /usr/local/bin/arman-vpn-core /usr/local/bin/docker-entrypoint
 
-VOLUME ["/var/lib/arman-vpn"]
+# Railway persistent storage is configured through Railway Volumes.
 EXPOSE 10820/tcp 10810/tcp 10810/udp
 
 LABEL org.opencontainers.image.title="Arman VPN" \
@@ -82,4 +80,5 @@ LABEL org.opencontainers.image.title="Arman VPN" \
       org.opencontainers.image.documentation="${SOURCE}/blob/main/docs/DOCKER.md"
 
 ENV TZ=UTC
+
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]
